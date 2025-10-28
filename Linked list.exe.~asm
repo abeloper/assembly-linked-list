@@ -1,0 +1,275 @@
+; ============================================
+; LINKED LIST OPERATIONS - EMU8086 VERSION
+; ============================================
+
+.MODEL SMALL
+.STACK 100h
+
+.DATA
+NODE_DATA  DB 10 DUP(0)       ; data for up to 10 nodes
+NODE_NEXT  DB 10 DUP(0FFh)    ; next index, 0FFh = NULL
+HEAD       DB 0FFh            ; head index
+TAIL       DB 0FFh            ; tail index
+COUNT      DB 0               ; node count
+
+MSG_MENU   DB 0Dh,0Ah,'==== LINKED LIST MENU ====$'
+MSG_OPTS   DB 0Dh,0Ah,'1. Insert Node',0Dh,0Ah,'2. Delete Node',0Dh,0Ah,'3. Display Nodes',0Dh,0Ah,'4. Exit',0Dh,0Ah,'Choose option: $'
+MSG_ENTER  DB 0Dh,0Ah,'Enter data (0-9): $'
+MSG_DEL    DB 0Dh,0Ah,'Enter node to delete: $'
+MSG_EMPTY  DB 0Dh,0Ah,'List is empty.$'
+MSG_NOTF   DB 0Dh,0Ah,'Node not found.$'
+MSG_DONE   DB 0Dh,0Ah,'Operation completed.$'
+MSG_SHOW   DB 0Dh,0Ah,'Linked List: $'
+MSG_EXIT   DB 0Dh,0Ah,'Program terminated.$'
+MSG_ARROW  DB ' -> $'
+
+TEMP       DB ?
+CURR       DB ?
+PREV       DB ?
+
+.CODE
+MAIN PROC
+MOV AX, @DATA
+MOV DS, AX
+
+MENU:
+LEA DX, MSG_MENU
+MOV AH, 9
+INT 21h
+
+LEA DX, MSG_OPTS
+MOV AH, 9
+INT 21h
+
+MOV AH, 1
+INT 21h
+SUB AL, 30h
+
+CMP AL, 1
+JE INSERT_NODE
+CMP AL, 2
+JE DELETE_NODE
+CMP AL, 3
+JE DISPLAY_LIST
+CMP AL, 4
+JE EXIT_PROG
+JMP MENU
+
+; -----------------------------
+; INSERT NODE
+; -----------------------------
+INSERT_NODE:
+MOV AL, COUNT
+CMP AL, 10
+JB CAN_INSERT
+JMP MENU
+
+CAN_INSERT:
+LEA DX, MSG_ENTER
+MOV AH, 9
+INT 21h
+
+MOV AH, 1
+INT 21h
+SUB AL, 30h
+MOV TEMP, AL
+
+MOV BL, COUNT         ; new node index
+
+; Store data
+MOV SI, OFFSET NODE_DATA
+MOV AL, TEMP
+MOV [SI + BX], AL
+
+; Set next pointer to NULL
+MOV SI, OFFSET NODE_NEXT
+MOV BYTE PTR [SI + BX], 0FFh
+
+; First node?
+MOV AL, HEAD
+CMP AL, 0FFh
+JNE NOT_FIRST_NODE
+
+MOV HEAD, BL
+MOV TAIL, BL
+JMP UPDATE_COUNT
+
+NOT_FIRST_NODE:
+; Link old tail -> new node
+MOV AL, TAIL
+MOV AH, 0
+MOV SI, OFFSET NODE_NEXT
+ADD SI, AX
+MOV [SI], BL
+MOV TAIL, BL
+
+UPDATE_COUNT:
+INC COUNT
+LEA DX, MSG_DONE
+MOV AH, 9
+INT 21h
+JMP MENU
+
+; -----------------------------
+; DELETE NODE - FIXED VERSION
+; -----------------------------
+DELETE_NODE:
+MOV AL, HEAD
+CMP AL, 0FFh
+JE LIST_EMPTY
+
+LEA DX, MSG_DEL
+MOV AH, 9
+INT 21h
+
+MOV AH, 1
+INT 21h
+SUB AL, 30h
+MOV TEMP, AL
+
+; Load HEAD into CURR using a register
+MOV AL, HEAD
+MOV CURR, AL
+MOV PREV, 0FFh
+
+DEL_LOOP:
+; Load current node data
+MOV BL, CURR
+MOV BH, 0
+MOV SI, OFFSET NODE_DATA
+MOV AL, [SI + BX]
+CMP AL, TEMP
+JE DELETE_FOUND
+
+; Get next pointer
+MOV SI, OFFSET NODE_NEXT
+MOV AL, [SI + BX]
+CMP AL, 0FFh
+JE NOT_FOUND
+
+; Update PREV and CURR via register
+MOV DL, CURR
+MOV PREV, DL
+MOV CURR, AL
+JMP DEL_LOOP
+
+DELETE_FOUND:
+; If deleting head
+MOV AL, PREV
+CMP AL, 0FFh
+JE DELETE_HEAD
+
+; prev.next = curr.next - FIXED CODE
+MOV SI, OFFSET NODE_NEXT
+MOV BL, CURR
+MOV BH, 0
+MOV AL, [SI + BX]   ; Get curr.next into AL
+
+MOV BL, PREV
+MOV BH, 0
+MOV [SI + BX], AL   ; Store in prev.next
+
+; If deleting tail, update tail
+CMP AL, 0FFh
+JNE DEL_DONE
+MOV AL, PREV        ; load PREV into register
+MOV TAIL, AL        ; store AL into TAIL
+JMP DEL_DONE
+
+DELETE_HEAD:
+MOV SI, OFFSET NODE_NEXT
+MOV BL, CURR
+MOV BH, 0
+MOV AL, [SI + BX]   ; head.next
+MOV HEAD, AL
+CMP AL, 0FFh
+JNE DEL_DONE
+MOV TAIL, 0FFh      ; list became empty
+
+DEL_DONE:
+DEC COUNT
+LEA DX, MSG_DONE
+MOV AH, 9
+INT 21h
+JMP MENU
+
+NOT_FOUND:
+LEA DX, MSG_NOTF
+MOV AH, 9
+INT 21h
+JMP MENU
+
+LIST_EMPTY:
+LEA DX, MSG_EMPTY
+MOV AH, 9
+INT 21h
+JMP MENU
+
+; -----------------------------
+; DISPLAY LIST - COMPLETELY FIXED VERSION
+; -----------------------------
+DISPLAY_LIST:
+MOV AL, HEAD
+CMP AL, 0FFh
+JE LIST_EMPTY
+
+; Display header
+LEA DX, MSG_SHOW
+MOV AH, 9
+INT 21h
+
+; Start from head
+MOV BL, HEAD
+
+DISPLAY_LOOP:
+; Print current node data
+MOV AL, BL
+MOV AH, 0
+MOV SI, OFFSET NODE_DATA
+ADD SI, AX
+MOV DL, [SI]
+ADD DL, 30h         ; Convert to ASCII
+MOV AH, 2
+INT 21h
+
+; Get next pointer
+MOV AL, BL
+MOV AH, 0
+MOV SI, OFFSET NODE_NEXT
+ADD SI, AX
+MOV BL, [SI]        ; Move to next node
+
+; Check if end of list
+CMP BL, 0FFh
+JE DISPLAY_END
+
+; Print arrow
+LEA DX, MSG_ARROW
+MOV AH, 9
+INT 21h
+
+JMP DISPLAY_LOOP
+
+DISPLAY_END:
+; Print newline
+MOV DL, 0Dh
+MOV AH, 2
+INT 21h
+MOV DL, 0Ah
+INT 21h
+JMP MENU
+
+; -----------------------------
+; EXIT PROGRAM
+; -----------------------------
+EXIT_PROG:
+LEA DX, MSG_EXIT
+MOV AH, 9
+INT 21h
+
+MOV AH, 4Ch
+INT 21h
+
+MAIN ENDP
+END MAIN
+

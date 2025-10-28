@@ -1,0 +1,346 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+Linked list.exe -- emu8086 assembler version: 4.08  
+ 
+[ 10/27/2025  --  12:58:51 AM ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       ; ============================================
+[   2]        :                                       ; LINKED LIST OPERATIONS - EMU8086 VERSION
+[   3]        :                                       ; ============================================
+[   4]        :                                       
+[   5]        :                                       .MODEL SMALL
+[   6]        :                                       .STACK 100h
+[   7]        :                                       
+[   8]        :                                       .DATA
+[   9]    0100: 00 00 00 00 00 00 00 00 00 00         NODE_DATA  DB 10 DUP(0)       ; data for up to 10 nodes
+[  10]    010A: FF FF FF FF FF FF FF FF FF FF         NODE_NEXT  DB 10 DUP(0FFh)    ; next index, 0FFh = NULL
+[  11]    0114: FF                                    HEAD       DB 0FFh            ; head index
+[  12]    0115: FF                                    TAIL       DB 0FFh            ; tail index
+[  13]    0116: 00                                    COUNT      DB 0               ; node count
+[  14]        :                                       
+[  15]    0117: 0D 0A 3D 3D 3D 3D 20 4C 49 4E 4B 45   MSG_MENU   DB 0Dh,0Ah,'==== LINKED LIST MENU ====$'
+                44 20 4C 49 53 54 20 4D 45 4E 55 20 
+                3D 3D 3D 3D 24                      
+[  16]    0134: 0D 0A 31 2E 20 49 6E 73 65 72 74 20   MSG_OPTS   DB 0Dh,0Ah,'1. Insert Node',0Dh,0Ah,'2. Delete Node',0Dh,0Ah,'3. Display Nodes',0Dh,0Ah,'4. Exit',0Dh,0Ah,'Choose option: $'
+                4E 6F 64 65 0D 0A 32 2E 20 44 65 6C 
+                65 74 65 20 4E 6F 64 65 0D 0A 33 2E 
+                20 44 69 73 70 6C 61 79 20 4E 6F 64 
+                65 73 0D 0A 34 2E 20 45 78 69 74 0D 
+                0A 43 68 6F 6F 73 65 20 6F 70 74 69 
+                6F 6E 3A 20 24                      
+[  17]    0181: 0D 0A 45 6E 74 65 72 20 64 61 74 61   MSG_ENTER  DB 0Dh,0Ah,'Enter data (0-9): $'
+                20 28 30 2D 39 29 3A 20 24          
+[  18]    0196: 0D 0A 45 6E 74 65 72 20 6E 6F 64 65   MSG_DEL    DB 0Dh,0Ah,'Enter node to delete: $'
+                20 74 6F 20 64 65 6C 65 74 65 3A 20 
+                24                                  
+[  19]    01AF: 0D 0A 4C 69 73 74 20 69 73 20 65 6D   MSG_EMPTY  DB 0Dh,0Ah,'List is empty.$'
+                70 74 79 2E 24                      
+[  20]    01C0: 0D 0A 4E 6F 64 65 20 6E 6F 74 20 66   MSG_NOTF   DB 0Dh,0Ah,'Node not found.$'
+                6F 75 6E 64 2E 24                   
+[  21]    01D2: 0D 0A 4F 70 65 72 61 74 69 6F 6E 20   MSG_DONE   DB 0Dh,0Ah,'Operation completed.$'
+                63 6F 6D 70 6C 65 74 65 64 2E 24    
+[  22]    01E9: 0D 0A 4C 69 6E 6B 65 64 20 4C 69 73   MSG_SHOW   DB 0Dh,0Ah,'Linked List: $'
+                74 3A 20 24                         
+[  23]    01F9: 0D 0A 50 72 6F 67 72 61 6D 20 74 65   MSG_EXIT   DB 0Dh,0Ah,'Program terminated.$'
+                72 6D 69 6E 61 74 65 64 2E 24       
+[  24]    020F: 20 2D 3E 20 24                        MSG_ARROW  DB ' -> $'
+[  25]        :                                       
+[  26]    0214: 00                                    TEMP       DB ?
+[  27]    0215: 00                                    CURR       DB ?
+[  28]    0216: 00                                    PREV       DB ?
+[  29]        :                                       
+[  30]        :                                       .CODE
+[  31]    0220:                                       MAIN PROC
+[  32]    0220: B8 10 00                              MOV AX, @DATA
+[  33]    0223: 8E D8                                 MOV DS, AX
+[  34]        :                                       
+[  35]    0225:                                       MENU:
+[  36]    0225: BA 17 00                              LEA DX, MSG_MENU
+[  37]    0228: B4 09                                 MOV AH, 9
+[  38]    022A: CD 21                                 INT 21h
+[  39]        :                                       
+[  40]    022C: BA 34 00                              LEA DX, MSG_OPTS
+[  41]    022F: B4 09                                 MOV AH, 9
+[  42]    0231: CD 21                                 INT 21h
+[  43]        :                                       
+[  44]    0233: B4 01                                 MOV AH, 1
+[  45]    0235: CD 21                                 INT 21h
+[  46]    0237: 2C 30                                 SUB AL, 30h
+[  47]        :                                       
+[  48]    0239: 3C 01                                 CMP AL, 1
+[  49]    023B: 74 14                                 JE INSERT_NODE
+[  50]    023D: 3C 02                                 CMP AL, 2
+[  51]    023F: 74 6A                                 JE DELETE_NODE
+[  52]    0241: 3C 03                                 CMP AL, 3
+[  53]    0243: 75 03 E9 0E 01                        JE DISPLAY_LIST
+[  54]    0248: 3C 04                                 CMP AL, 4
+[  55]    024A: 75 03 E9 51 01                        JE EXIT_PROG
+[  56]    024F: EB D4                                 JMP MENU
+[  57]        :                                       
+[  58]        :                                       ; -----------------------------
+[  59]        :                                       ; INSERT NODE
+[  60]        :                                       ; -----------------------------
+[  61]    0251:                                       INSERT_NODE:
+[  62]    0251: A0 16 00                              MOV AL, COUNT
+[  63]    0254: 3C 0A                                 CMP AL, 10
+[  64]    0256: 72 02                                 JB CAN_INSERT
+[  65]    0258: EB CB                                 JMP MENU
+[  66]        :                                       
+[  67]    025A:                                       CAN_INSERT:
+[  68]    025A: BA 81 00                              LEA DX, MSG_ENTER
+[  69]    025D: B4 09                                 MOV AH, 9
+[  70]    025F: CD 21                                 INT 21h
+[  71]        :                                       
+[  72]    0261: B4 01                                 MOV AH, 1
+[  73]    0263: CD 21                                 INT 21h
+[  74]    0265: 2C 30                                 SUB AL, 30h
+[  75]    0267: A2 14 01                              MOV TEMP, AL
+[  76]        :                                       
+[  77]    026A: 8A 1E 16 00                           MOV BL, COUNT         ; new node index
+[  78]        :                                       
+[  79]        :                                       ; Store data
+[  80]    026E: BE 00 00                              MOV SI, OFFSET NODE_DATA
+[  81]    0271: A0 14 01                              MOV AL, TEMP
+[  82]    0274: 88 00                                 MOV [SI + BX], AL
+[  83]        :                                       
+[  84]        :                                       ; Set next pointer to NULL
+[  85]    0276: BE 0A 00                              MOV SI, OFFSET NODE_NEXT
+[  86]    0279: C6 00 FF                              MOV BYTE PTR [SI + BX], 0FFh
+[  87]        :                                       
+[  88]        :                                       ; First node?
+[  89]    027C: A0 14 00                              MOV AL, HEAD
+[  90]    027F: 3C FF                                 CMP AL, 0FFh
+[  91]    0281: 75 0A                                 JNE NOT_FIRST_NODE
+[  92]        :                                       
+[  93]    0283: 88 1E 14 00                           MOV HEAD, BL
+[  94]    0287: 88 1E 15 00                           MOV TAIL, BL
+[  95]    028B: EB 10                                 JMP UPDATE_COUNT
+[  96]        :                                       
+[  97]    028D:                                       NOT_FIRST_NODE:
+[  98]        :                                       ; Link old tail -> new node
+[  99]    028D: A0 15 00                              MOV AL, TAIL
+[ 100]    0290: B4 00                                 MOV AH, 0
+[ 101]    0292: BE 0A 00                              MOV SI, OFFSET NODE_NEXT
+[ 102]    0295: 03 F0                                 ADD SI, AX
+[ 103]    0297: 88 1C                                 MOV [SI], BL
+[ 104]    0299: 88 1E 15 00                           MOV TAIL, BL
+[ 105]        :                                       
+[ 106]    029D:                                       UPDATE_COUNT:
+[ 107]    029D: FE 06 16 00                           INC COUNT
+[ 108]    02A1: BA D2 00                              LEA DX, MSG_DONE
+[ 109]    02A4: B4 09                                 MOV AH, 9
+[ 110]    02A6: CD 21                                 INT 21h
+[ 111]    02A8: E9 7A FF                              JMP MENU
+[ 112]        :                                       
+[ 113]        :                                       ; -----------------------------
+[ 114]        :                                       ; DELETE NODE - FIXED VERSION
+[ 115]        :                                       ; -----------------------------
+[ 116]    02AB:                                       DELETE_NODE:
+[ 117]    02AB: A0 14 00                              MOV AL, HEAD
+[ 118]    02AE: 3C FF                                 CMP AL, 0FFh
+[ 119]    02B0: 75 03 E9 97 00                        JE LIST_EMPTY
+[ 120]        :                                       
+[ 121]    02B5: BA 96 00                              LEA DX, MSG_DEL
+[ 122]    02B8: B4 09                                 MOV AH, 9
+[ 123]    02BA: CD 21                                 INT 21h
+[ 124]        :                                       
+[ 125]    02BC: B4 01                                 MOV AH, 1
+[ 126]    02BE: CD 21                                 INT 21h
+[ 127]    02C0: 2C 30                                 SUB AL, 30h
+[ 128]    02C2: A2 14 01                              MOV TEMP, AL
+[ 129]        :                                       
+[ 130]        :                                       ; Load HEAD into CURR using a register
+[ 131]    02C5: A0 14 00                              MOV AL, HEAD
+[ 132]    02C8: A2 15 01                              MOV CURR, AL
+[ 133]    02CB: C6 06 16 01 FF                        MOV PREV, 0FFh
+[ 134]        :                                       
+[ 135]    02D0:                                       DEL_LOOP:
+[ 136]        :                                       ; Load current node data
+[ 137]    02D0: 8A 1E 15 01                           MOV BL, CURR
+[ 138]    02D4: B7 00                                 MOV BH, 0
+[ 139]    02D6: BE 00 00                              MOV SI, OFFSET NODE_DATA
+[ 140]    02D9: 8A 00                                 MOV AL, [SI + BX]
+[ 141]    02DB: 3A 06 14 01                           CMP AL, TEMP
+[ 142]    02DF: 74 16                                 JE DELETE_FOUND
+[ 143]        :                                       
+[ 144]        :                                       ; Get next pointer
+[ 145]    02E1: BE 0A 00                              MOV SI, OFFSET NODE_NEXT
+[ 146]    02E4: 8A 00                                 MOV AL, [SI + BX]
+[ 147]    02E6: 3C FF                                 CMP AL, 0FFh
+[ 148]    02E8: 74 58                                 JE NOT_FOUND
+[ 149]        :                                       
+[ 150]        :                                       ; Update PREV and CURR via register
+[ 151]    02EA: 8A 16 15 01                           MOV DL, CURR
+[ 152]    02EE: 88 16 16 01                           MOV PREV, DL
+[ 153]    02F2: A2 15 01                              MOV CURR, AL
+[ 154]    02F5: EB D9                                 JMP DEL_LOOP
+[ 155]        :                                       
+[ 156]    02F7:                                       DELETE_FOUND:
+[ 157]        :                                       ; If deleting head
+[ 158]    02F7: A0 16 01                              MOV AL, PREV
+[ 159]    02FA: 3C FF                                 CMP AL, 0FFh
+[ 160]    02FC: 74 1F                                 JE DELETE_HEAD
+[ 161]        :                                       
+[ 162]        :                                       ; prev.next = curr.next - FIXED CODE
+[ 163]    02FE: BE 0A 00                              MOV SI, OFFSET NODE_NEXT
+[ 164]    0301: 8A 1E 15 01                           MOV BL, CURR
+[ 165]    0305: B7 00                                 MOV BH, 0
+[ 166]    0307: 8A 00                                 MOV AL, [SI + BX]   ; Get curr.next into AL
+[ 167]        :                                       
+[ 168]    0309: 8A 1E 16 01                           MOV BL, PREV
+[ 169]    030D: B7 00                                 MOV BH, 0
+[ 170]    030F: 88 00                                 MOV [SI + BX], AL   ; Store in prev.next
+[ 171]        :                                       
+[ 172]        :                                       ; If deleting tail, update tail
+[ 173]    0311: 3C FF                                 CMP AL, 0FFh
+[ 174]    0313: 75 1F                                 JNE DEL_DONE
+[ 175]    0315: A0 16 01                              MOV AL, PREV        ; load PREV into register
+[ 176]    0318: A2 15 00                              MOV TAIL, AL        ; store AL into TAIL
+[ 177]    031B: EB 17                                 JMP DEL_DONE
+[ 178]        :                                       
+[ 179]    031D:                                       DELETE_HEAD:
+[ 180]    031D: BE 0A 00                              MOV SI, OFFSET NODE_NEXT
+[ 181]    0320: 8A 1E 15 01                           MOV BL, CURR
+[ 182]    0324: B7 00                                 MOV BH, 0
+[ 183]    0326: 8A 00                                 MOV AL, [SI + BX]   ; head.next
+[ 184]    0328: A2 14 00                              MOV HEAD, AL
+[ 185]    032B: 3C FF                                 CMP AL, 0FFh
+[ 186]    032D: 75 05                                 JNE DEL_DONE
+[ 187]    032F: C6 06 15 00 FF                        MOV TAIL, 0FFh      ; list became empty
+[ 188]        :                                       
+[ 189]    0334:                                       DEL_DONE:
+[ 190]    0334: FE 0E 16 00                           DEC COUNT
+[ 191]    0338: BA D2 00                              LEA DX, MSG_DONE
+[ 192]    033B: B4 09                                 MOV AH, 9
+[ 193]    033D: CD 21                                 INT 21h
+[ 194]    033F: E9 E3 FE                              JMP MENU
+[ 195]        :                                       
+[ 196]    0342:                                       NOT_FOUND:
+[ 197]    0342: BA C0 00                              LEA DX, MSG_NOTF
+[ 198]    0345: B4 09                                 MOV AH, 9
+[ 199]    0347: CD 21                                 INT 21h
+[ 200]    0349: E9 D9 FE                              JMP MENU
+[ 201]        :                                       
+[ 202]    034C:                                       LIST_EMPTY:
+[ 203]    034C: BA AF 00                              LEA DX, MSG_EMPTY
+[ 204]    034F: B4 09                                 MOV AH, 9
+[ 205]    0351: CD 21                                 INT 21h
+[ 206]    0353: E9 CF FE                              JMP MENU
+[ 207]        :                                       
+[ 208]        :                                       ; -----------------------------
+[ 209]        :                                       ; DISPLAY LIST - COMPLETELY FIXED VERSION
+[ 210]        :                                       ; -----------------------------
+[ 211]    0356:                                       DISPLAY_LIST:
+[ 212]    0356: A0 14 00                              MOV AL, HEAD
+[ 213]    0359: 3C FF                                 CMP AL, 0FFh
+[ 214]    035B: 74 EF                                 JE LIST_EMPTY
+[ 215]        :                                       
+[ 216]        :                                       ; Display header
+[ 217]    035D: BA E9 00                              LEA DX, MSG_SHOW
+[ 218]    0360: B4 09                                 MOV AH, 9
+[ 219]    0362: CD 21                                 INT 21h
+[ 220]        :                                       
+[ 221]        :                                       ; Start from head
+[ 222]    0364: 8A 1E 14 00                           MOV BL, HEAD
+[ 223]        :                                       
+[ 224]    0368:                                       DISPLAY_LOOP:
+[ 225]        :                                       ; Print current node data
+[ 226]    0368: 8A C3                                 MOV AL, BL
+[ 227]    036A: B4 00                                 MOV AH, 0
+[ 228]    036C: BE 00 00                              MOV SI, OFFSET NODE_DATA
+[ 229]    036F: 03 F0                                 ADD SI, AX
+[ 230]    0371: 8A 14                                 MOV DL, [SI]
+[ 231]    0373: 80 C2 30                              ADD DL, 30h         ; Convert to ASCII
+[ 232]    0376: B4 02                                 MOV AH, 2
+[ 233]    0378: CD 21                                 INT 21h
+[ 234]        :                                       
+[ 235]        :                                       ; Get next pointer
+[ 236]    037A: 8A C3                                 MOV AL, BL
+[ 237]    037C: B4 00                                 MOV AH, 0
+[ 238]    037E: BE 0A 00                              MOV SI, OFFSET NODE_NEXT
+[ 239]    0381: 03 F0                                 ADD SI, AX
+[ 240]    0383: 8A 1C                                 MOV BL, [SI]        ; Move to next node
+[ 241]        :                                       
+[ 242]        :                                       ; Check if end of list
+[ 243]    0385: 80 FB FF                              CMP BL, 0FFh
+[ 244]    0388: 74 09                                 JE DISPLAY_END
+[ 245]        :                                       
+[ 246]        :                                       ; Print arrow
+[ 247]    038A: BA 0F 01                              LEA DX, MSG_ARROW
+[ 248]    038D: B4 09                                 MOV AH, 9
+[ 249]    038F: CD 21                                 INT 21h
+[ 250]        :                                       
+[ 251]    0391: EB D5                                 JMP DISPLAY_LOOP
+[ 252]        :                                       
+[ 253]    0393:                                       DISPLAY_END:
+[ 254]        :                                       ; Print newline
+[ 255]    0393: B2 0D                                 MOV DL, 0Dh
+[ 256]    0395: B4 02                                 MOV AH, 2
+[ 257]    0397: CD 21                                 INT 21h
+[ 258]    0399: B2 0A                                 MOV DL, 0Ah
+[ 259]    039B: CD 21                                 INT 21h
+[ 260]    039D: E9 85 FE                              JMP MENU
+[ 261]        :                                       
+[ 262]        :                                       ; -----------------------------
+[ 263]        :                                       ; EXIT PROGRAM
+[ 264]        :                                       ; -----------------------------
+[ 265]    03A0:                                       EXIT_PROG:
+[ 266]    03A0: BA F9 00                              LEA DX, MSG_EXIT
+[ 267]    03A3: B4 09                                 MOV AH, 9
+[ 268]    03A5: CD 21                                 INT 21h
+[ 269]        :                                       
+[ 270]    03A7: B4 4C                                 MOV AH, 4Ch
+[ 271]    03A9: CD 21                                 INT 21h
+[ 272]        :                                       
+[ 273]        :                                       MAIN ENDP
+[ 274]        :                                       END MAIN
+[ 275]        :                                       
+ 
+===================================================================================================
+ 
+EXE HEADER - bytes from 0000 to 01FF inclusive.
+
+0000: 4D      -   exe signature (M)
+0001: 5A      -   exe signature (Z)
+0002: AB      -   bytes on last page (l.byte)
+0003: 01      -   bytes on last page (h.byte)
+0004: 03      -   512 byte pages in file (l.byte)
+0005: 00      -   512 byte pages in file (h.byte)
+0006: 01      -   relocations (l.byte)
+0007: 00      -   relocations (h.byte)
+0008: 20      -   paragraphs in header (l.byte)
+0009: 00      -   paragraphs in header (h.byte)
+000A: 00      -   minimum memory (l.byte)
+000B: 00      -   minimum memory (h.byte)
+000C: FF      -   maximum memory (l.byte)
+000D: FF      -   maximum memory (h.byte)
+000E: 00      -   SS - stack segment (l.byte)
+000F: 00      -   SS - stack segment (h.byte)
+0010: 00      -   SP - stack pointer (l.byte)
+0011: 01      -   SP - stack pointer (h.byte)
+0012: F6      -   check sum (l.byte)
+0013: 1B      -   check sum (h.byte)
+0014: 00      -   IP - instruction pointer (l.byte)
+0015: 00      -   IP - instruction pointer (h.byte)
+0016: 22      -   CS - code segment (l.byte)
+0017: 00      -   CS - code segment (h.byte)
+0018: 1E      -   relocation table adress (l.byte)
+0019: 00      -   relocation table adress (h.byte)
+001A: 00      -   overlay number (l.byte)
+001B: 00      -   overlay number (h.byte)
+001C: 01      -   signature (l.byte)
+001D: 00      -   signature (h.byte)
+001E: 01      -   relocation table - offset inside segment (l.byte)
+001F: 00      -   relocation table - offset inside segment (h.byte)
+0020: 22      -   relocation table - segment anchor (l.byte)
+0021: 00      -   relocation table - segment anchor (h.byte)
+0022 to 01FF  -   reserved relocation area  (00) 
+
+
+
+
+===================================================================================================

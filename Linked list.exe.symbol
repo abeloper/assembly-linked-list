@@ -1,0 +1,46 @@
+< THE SYMBOL TABLE >  Linked list.exe  --  emu8086 assembler version: 4.08 
+===================================================================================================
+Name                     	Offset    	Size      	Type      	Segment   
+===================================================================================================
+STACK                    	00000     	-5        	SEGMENT   	(ITSELF)  
+DATA                     	00010     	-5        	SEGMENT   	(ITSELF)  
+NODE_DATA                	00000     	1         	VAR       	data      
+NODE_NEXT                	0000A     	1         	VAR       	data      
+HEAD                     	00014     	1         	VAR       	data      
+TAIL                     	00015     	1         	VAR       	data      
+COUNT                    	00016     	1         	VAR       	data      
+MSG_MENU                 	00017     	1         	VAR       	data      
+MSG_OPTS                 	00034     	1         	VAR       	data      
+MSG_ENTER                	00081     	1         	VAR       	data      
+MSG_DEL                  	00096     	1         	VAR       	data      
+MSG_EMPTY                	000AF     	1         	VAR       	data      
+MSG_NOTF                 	000C0     	1         	VAR       	data      
+MSG_DONE                 	000D2     	1         	VAR       	data      
+MSG_SHOW                 	000E9     	1         	VAR       	data      
+MSG_EXIT                 	000F9     	1         	VAR       	data      
+MSG_ARROW                	0010F     	1         	VAR       	data      
+TEMP                     	00114     	1         	VAR       	data      
+CURR                     	00115     	1         	VAR       	data      
+PREV                     	00116     	1         	VAR       	data      
+CODE                     	00022     	-5        	SEGMENT   	(ITSELF)  
+MAIN                     	00000     	-1        	NEAR      	code      
+MENU                     	00005     	-1        	LABEL     	code      
+INSERT_NODE              	00031     	-1        	LABEL     	code      
+CAN_INSERT               	0003A     	-1        	LABEL     	code      
+NOT_FIRST_NODE           	0006D     	-1        	LABEL     	code      
+UPDATE_COUNT             	0007D     	-1        	LABEL     	code      
+DELETE_NODE              	0008B     	-1        	LABEL     	code      
+DEL_LOOP                 	000B0     	-1        	LABEL     	code      
+DELETE_FOUND             	000D7     	-1        	LABEL     	code      
+DELETE_HEAD              	000FD     	-1        	LABEL     	code      
+DEL_DONE                 	00114     	-1        	LABEL     	code      
+NOT_FOUND                	00122     	-1        	LABEL     	code      
+LIST_EMPTY               	0012C     	-1        	LABEL     	code      
+DISPLAY_LIST             	00136     	-1        	LABEL     	code      
+DISPLAY_LOOP             	00148     	-1        	LABEL     	code      
+DISPLAY_END              	00173     	-1        	LABEL     	code      
+EXIT_PROG                	00180     	-1        	LABEL     	code      
+===================================================================================================
+[ 10/27/2025  --  12:58:51 AM ] 
+< END >
+ 

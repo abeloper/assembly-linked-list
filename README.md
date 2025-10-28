@@ -168,5 +168,3 @@ Check out our **interactive web simulator** that visually demonstrates this asse
 * 🎓 **Microprocessor Course** for the inspiration
 * 🙌 **You**, for taking the time to understand low-level programming!
 
-```
-
